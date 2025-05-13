@@ -1,5 +1,6 @@
 const _ = require('lodash');
-const todos = require('./database/todo-queries.js');
+const todos = require('../database/queries/todos.js');
+const addErrorReporting = require('../middlewares/error_handler.js');
 
 function createToDo(req, data) {
   const protocol = req.protocol, 
@@ -8,8 +9,10 @@ function createToDo(req, data) {
 
   return {
     title: data.title,
-    order: data.order,
-    completed: data.completed || false,
+    description: data.description,
+    code: data.code,
+    status: data.status,
+    organization: data.organization,
     url: `${protocol}://${host}/${id}`
   };
 }
@@ -25,7 +28,13 @@ async function getTodo(req, res) {
 }
 
 async function postTodo(req, res) {
-  const created = await todos.create(req.body.title, req.body.order);
+  const created = await todos.create({
+    title: req.body.title, 
+    description: req.body.description, 
+    code: req.body.code, 
+    status: req.body.status, 
+    organization: req.body.organization
+  });
   return res.send(createToDo(req, created));
 }
 
@@ -44,19 +53,6 @@ async function deleteTodo(req, res) {
   return res.send(createToDo(req, deleted));
 }
 
-function addErrorReporting(func, message) {
-    return async function(req, res) {
-        try {
-            return await func(req, res);
-        } catch(err) {
-            console.log(`${message} caused by: ${err}`);
-
-            // Not always 500, but for simplicity's sake.
-            res.status(500).send(`Opps! ${message}.`);
-        } 
-    }
-}
-
 const toExport = {
     getAllTodos: { method: getAllTodos, errorMessage: "Could not fetch all todos" },
     getTodo: { method: getTodo, errorMessage: "Could not fetch todo" },
@@ -66,8 +62,37 @@ const toExport = {
     deleteTodo: { method: deleteTodo, errorMessage: "Could not delete todo" }
 }
 
+const todosFields = {
+  table_name: 'todos',
+  fields: [{
+    name: 'title',
+    type: 'string',
+    notNull: true
+  }, {
+    name: 'code',
+    type: 'integer',
+    increments: true,
+    notNull: true
+  }, {
+    name: 'status',
+    type: 'string',
+    notNull: true,
+    defaultTo: 'active'
+  }, {
+    name: 'description',
+    type: 'string',
+    notNull: true
+  }, {
+    name: 'organization',
+    type: 'integer',
+    foreign: 'organizations',
+    references: 'id',
+    notNull: true
+  }]
+}
+
 for (let route in toExport) {
     toExport[route] = addErrorReporting(toExport[route].method, toExport[route].errorMessage);
 }
 
-module.exports = toExport;
+module.exports = { ...toExport, todosFields };

@@ -1,18 +1,16 @@
+const knex = require('./database/connection.js');
 const app = require('./server-config.js');
-const routes = require('./server-routes.js');
+const todoRoutes = require('./routes/todos.js');
+const organizationRoutes = require('./routes/organizations.js');
+const { up, down } = require('./migrations/20191228160809_create-todos.js');
 
 const port = process.env.PORT || 5000;
 
-app.get('/', routes.getAllTodos);
-app.get('/:id', routes.getTodo);
-
-app.post('/', routes.postTodo);
-app.patch('/:id', routes.patchTodo);
-
-app.delete('/', routes.deleteAllTodos);
-app.delete('/:id', routes.deleteTodo);
+app.use('/todos', todoRoutes);
+app.use('/organizations', organizationRoutes);
 
 if (process.env.NODE_ENV !== 'test') {
+  up(knex)
   app.listen(port, () => console.log(`Listening on port ${port}`));
 }
 
