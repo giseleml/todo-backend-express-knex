@@ -4,7 +4,8 @@ const { organizationsFields } = require('../models/organizations.js');
 const TABLES = [todosFields, organizationsFields];
 
 exports.up = function (knex) {
-    return TABLES.map(table => {
+    console.log('[database] Creating tables...')
+    return Promise.all(TABLES.map(table => {
         return knex.schema.hasTable(table.table_name)
             .then(exists => {
                 if (exists) {
@@ -41,16 +42,27 @@ exports.up = function (knex) {
             })
             .catch(error => {
                 console.log(`[database] error creating table ${table.table_name}:`, error);
+                return Promise.reject(error)
             })
-    })
+    }))
+        .then(() => {
+            console.log('[database] Tables created successfully')
+            return Promise.resolve({})
+        })
 };
 
 exports.down = function (knex) {
-    return TABLES.forEach(table => knex.schema.dropTable(table.table_name, () => {
+    console.log('[database] Dropping tables...')
+    return Promise.all(TABLES.map(table => knex.schema.dropTable(table.table_name, () => {
         console.log(`[database] dropping table ${table.table_name}`);
-        return null
     })
         .catch(error => {
             console.log(`[database] error dropping table ${table.table_name}:`, error);
+            return Promise.reject(error)
         }))
+    )
+        .then(() => {
+            console.log('[database] Tables dropped successfully')
+            return Promise.resolve({})
+        })
 };

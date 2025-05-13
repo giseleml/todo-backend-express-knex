@@ -18,8 +18,8 @@ const getBody = response => response.body;
 describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}`, () => {
 
     function createFreshTodoAndGetItsUrl(params){
-      var postParams = _.defaults( (params || {}), { title: "blah" } );
-      return request.post('/', postParams).then(getBody).then( urlFromTodo );
+      var postParams = _.defaults( (params || {}), { title: "blah", organization: 1 } );
+      return request.post('/todos', postParams).then(getBody).then( urlFromTodo );
     };
 
     describe("The pre-requsites", () => {

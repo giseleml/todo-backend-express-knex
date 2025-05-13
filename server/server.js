@@ -10,8 +10,9 @@ app.use('/todos', todoRoutes);
 app.use('/organizations', organizationRoutes);
 
 if (process.env.NODE_ENV !== 'test') {
-  up(knex)
-  app.listen(port, () => console.log(`Listening on port ${port}`));
+  down(knex)
+    .then(() => up(knex))
+    .then(() => app.listen(port, () => console.log(`Listening on port ${port}`)));
 }
 
 module.exports = app;

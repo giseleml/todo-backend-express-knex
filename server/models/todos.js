@@ -2,11 +2,11 @@ const _ = require('lodash');
 const todos = require('../database/queries/todos.js');
 const addErrorReporting = require('../middlewares/error_handler.js');
 
-function createToDo(req, data) {
+function view(req, data) {
   const protocol = req.protocol, 
     host = req.get('host'), 
     id = data.id;
-
+  
   return {
     title: data.title,
     description: data.description,
@@ -19,7 +19,7 @@ function createToDo(req, data) {
 
 async function getAllTodos(req, res) {
   const allEntries = await todos.all();
-  return res.send(allEntries.map( _.curry(createToDo)(req) ));
+  return res.send(allEntries.map( _.curry(view)(req) ));
 }
 
 async function getTodo(req, res) {
@@ -35,22 +35,22 @@ async function postTodo(req, res) {
     status: req.body.status, 
     organization: req.body.organization
   });
-  return res.send(createToDo(req, created));
+  return res.send(view(req, created));
 }
 
 async function patchTodo(req, res) {
   const patched = await todos.update(req.params.id, req.body);
-  return res.send(createToDo(req, patched));
+  return res.send(view(req, patched));
 }
 
 async function deleteAllTodos(req, res) {
   const deletedEntries = await todos.clear();
-  return res.send(deletedEntries.map( _.curry(createToDo)(req) ));
+  return res.send(deletedEntries.map( _.curry(view)(req) ));
 }
 
 async function deleteTodo(req, res) {
   const deleted = await todos.delete(req.params.id);
-  return res.send(createToDo(req, deleted));
+  return res.send(view(req, deleted));
 }
 
 const toExport = {
@@ -81,7 +81,6 @@ const todosFields = {
   }, {
     name: 'description',
     type: 'string',
-    notNull: true
   }, {
     name: 'organization',
     type: 'integer',
