@@ -30,6 +30,16 @@ function patch (url, body) {
   return httpRequest;
 }
 
+// a helper function to make a PUT request.
+function put (url, body) {
+  const httpRequest = request(app).put(url);
+  httpRequest.send(body);
+  httpRequest.set('Accept', 'application/json')
+  httpRequest.set('Origin', ROOT)
+  return httpRequest;
+}
+
+
 // a helper function to make a DELETE request.
 function del (url) {
   const httpRequest = request(app).delete(url);
@@ -43,6 +53,7 @@ module.exports = {
   post,
   get,
   patch,
+  put,
   del,
   delete: del,
   root: ROOT
