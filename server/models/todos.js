@@ -8,6 +8,7 @@ function view (req, data) {
     id = data.id;
 
   return {
+    id: data.id,
     title: data.title,
     description: data.description,
     code: data.code,
@@ -24,7 +25,7 @@ async function getAllTodos (req, res) {
 
 async function getTodo (req, res) {
   const todo = await todos.get(req.params.id);
-  return res.send(todo);
+  return res.send(view(req, todo));
 }
 
 async function postTodo (req, res) {
@@ -45,7 +46,7 @@ async function patchTodo (req, res) {
 
 async function deleteAllTodos (req, res) {
   const deletedEntries = await todos.clear();
-  return res.send(deletedEntries.map( _.curry(createToDo)(req) ));
+  return res.send(deletedEntries.map( _.curry(view)(req) ));
 }
 
 async function deleteTodo (req, res) {
@@ -83,7 +84,7 @@ const todosFields = {
     type: 'string',
   }, {
     name: 'organization',
-    type: 'integer',
+    type: 'string',
     foreign: 'organizations',
     references: 'id',
     notNull: true

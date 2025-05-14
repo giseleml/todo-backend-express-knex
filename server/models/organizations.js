@@ -7,7 +7,7 @@ function view(req, data) {
     host = req.get('host'), 
     id = data.id;
 
-  return {
+    return {
     name: data.name,
     state: data.state,
     id: data.id,
@@ -22,7 +22,7 @@ async function getAllOrganizations(req, res) {
 
 async function getOrganization(req, res) {
   const org = await organizations.get(req.params.id);
-  return res.send(org);
+  return res.send(view(req, org));
 }
 
 async function postOrganization(req, res) {

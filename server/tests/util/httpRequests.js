@@ -1,8 +1,12 @@
 const request = require('supertest');
-
+const knex = require('../../database/connection.js');
 const app = require('../../server.js');
 
 const ROOT = 'http://localhost:5000'
+
+afterAll(async () => {
+  await knex.destroy();
+});
 
 // a helper function to make a POST request.
 function post (url, body) {

@@ -16,10 +16,14 @@ const urlFromOrg = todo => {
   return newUrl["pathname"]
 };
 
-const getRoot = _ => request.get('/organizations');
 const getBody = response => response.body;
 
 describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/organizations`, () => {
+  function createFreshOrganizationAndGetItsUrl (params) {
+    var postParams = _.defaults((params || {}), { name: "Test Organization" });
+    return request.post('/organizations', postParams).then(getBody).then(urlFromOrg);
+  };
+
   it('should create an organization', async () => {
     const response = await request.post('/organizations', { name: 'Test Organization' });
     expect(response.status).toBe(200);
@@ -33,21 +37,32 @@ describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/orga
   });
 
   it('should get an organization by id', async () => {
-    const response = await request.get('/organizations/1');
+    const url = await createFreshOrganizationAndGetItsUrl();
+    const orgId = url.split('/').pop();
+
+    const response = await request.get(`/organizations/${orgId}`);
+
     expect(response.status).toBe(200);
-    expect(response.body.id).toBe(1);
+    expect(response.body.id).toBe(orgId);
   });
 
   it('should update an organization', async () => {
-    const response = await request.put('/organizations/1', { name: 'Updated Organization' });
+    const url = await createFreshOrganizationAndGetItsUrl();
+    const orgId = url.split('/').pop();
+
+    const response = await request.put(`/organizations/${orgId}`, { name: 'Updated Organization' });
     expect(response.status).toBe(200);
     expect(response.body.name).toBe('Updated Organization');
+    expect(response.body.id).toBe(orgId);
   });
 
   it('should delete an organization', async () => {
-    const response = await request.delete('/organizations/1');
+    const url = await createFreshOrganizationAndGetItsUrl();
+    const orgId = url.split('/').pop();
+
+    const response = await request.delete(`/organizations/${orgId}`);
     expect(response.status).toBe(200);
-    expect(response.body.id).toBe(1);
+    expect(response.body.id).toBe(orgId);
     expect(response.body.state).toBe('inactive');
   });
 })
