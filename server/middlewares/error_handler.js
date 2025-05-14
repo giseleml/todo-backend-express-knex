@@ -1,11 +1,17 @@
+function logRequest (req, res) {
+    console.log(req.method, req.originalUrl, res.statusCode);
+}
+
 function addErrorReporting (func, message) {
     return async function (req, res) {
         try {
             const result = await func(req, res);
-            console.log(req.method, req.originalUrl, res.statusCode);
+            
+            (process.env.NODE_ENV !== 'test') && logRequest(req, res);
+
             return result
         } catch (err) {
-            console.log(req.method, req.originalUrl, res.statusCode);
+            (process.env.NODE_ENV !== 'test') && logRequest(req, res);
             console.log(`${message} caused by: ${err}`);
 
             if (err.message.includes('not found')) {

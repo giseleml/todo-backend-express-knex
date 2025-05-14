@@ -22,8 +22,9 @@ function view (req, data) {
 }
 
 async function getTodosByProjectId (req, res) {
+  console.log('1111111')
   const allEntries = await todos.getByProjectId(req.params.projectId);
-
+  console.log("GET TODOS BY PROJECT ID", allEntries)
   if (allEntries.length === 0) {
     throw new Error('Todos not found');
   }

@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const projects = require('../database/queries/projects.js');
 const addErrorReporting = require('../middlewares/error_handler.js');
-
+const organizations = require('../database/queries/organizations.js');
 function view (req, data) {
   const protocol = req.protocol,
     host = req.get('host'),
@@ -10,6 +10,7 @@ function view (req, data) {
   return {
     name: data.name,
     state: data.state,
+    organization: data.organization,
     id: data.id,
     url: `${protocol}://${host}/${id}`
   };
@@ -27,10 +28,16 @@ async function getProject (req, res) {
 }
 
 async function postProject (req, res) {
-  const created = await projects.create({ name: req.body.name, state: 'active' });
+  const organization = await organizations.get(req.body.organization);
+
+  if (!organization) {
+    throw new Error('Organization not found');
+  }
+
+  const created = await projects.create({ name: req.body.name, organization: req.body.organization, state: 'active' });
 
   if (!created) {
-    throw new Error('Project not created');
+    throw new Error('Project not found');
   }
 
   return res.send(view(req, created));
@@ -40,7 +47,7 @@ async function updateProject (req, res) {
   const patched = await projects.update(req.params.id, req.body);
 
   if (!patched) {
-    throw new Error('Project not updated');
+    throw new Error('Project not found');
   }
 
   return res.send(view(req, patched));
@@ -50,7 +57,7 @@ async function deleteProject (req, res) {
   const deleted = await projects.update(req.params.id, { state: 'inactive' });
 
   if (!deleted) {
-    throw new Error('Project not deleted');
+    throw new Error('Project not found');
   }
 
   return res.send(view(req, deleted));
@@ -59,11 +66,19 @@ async function deleteProject (req, res) {
 async function activateProject (req, res) {
   const activated = await projects.update(req.params.id, { state: 'active' });
 
+  if (!activated) {
+    throw new Error('Project not found');
+  }
+
   return res.send(view(req, activated));
 }
 
 async function deactivateProject (req, res) {
   const deactivated = await projects.update(req.params.id, { state: 'inactive' });
+
+  if (!deactivated) {
+    throw new Error('Project not found');
+  }
 
   return res.send(view(req, deactivated));
 }
@@ -82,6 +97,12 @@ const projectsFields = {
   fields: [{
     name: 'name',
     type: 'string',
+    notNull: true
+  }, {
+    name: 'organization',
+    type: 'string',
+    foreign: 'organizations',
+    references: 'id',
     notNull: true
   }, {
     name: 'state',

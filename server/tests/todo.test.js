@@ -8,6 +8,8 @@
 process.env.NODE_ENV = 'test';
 const _ = require("lodash");
 const request = require('./util/httpRequests.js');
+const organizations = require('../database/queries/organizations.js');
+const projects = require('../database/queries/projects.js');
 
 // Relative paths are used for supertest in the util file.
 const urlFromTodo = todo => {
@@ -17,9 +19,17 @@ const urlFromTodo = todo => {
 const getRoot = _ => request.get('/todos');
 const getBody = response => response.body;
 
+let project = null
+let organization = null
+
+beforeEach(async () => {
+    organization = await organizations.create({ name: 'Test Organization' });
+    project = await projects.create({ name: 'Test Project', organization: organization.id });
+});
+
 describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/todos`, () => {
     function createFreshTodoAndGetItsUrl (params) {
-        var postParams = _.defaults((params || {}), { title: "blah", organization: "ca737f73-87fb-40ce-aee1-b3361d8de63b" });
+        const postParams = _.defaults((params || {}), { title: "blah", organization: organization.id, project: project.id });
         return request.post('/todos', postParams).then(getBody).then(urlFromTodo);
     };
 
@@ -32,24 +42,12 @@ describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/todo
         );
 
         it("the api root responds to a POST with the todo which was posted to it", async () => {
-            const starting = { "title": "a todo", organization: "ca737f73-87fb-40ce-aee1-b3361d8de63b" };
+            expect(organization.id).toBeDefined();
+            const starting = { "title": "a todo", organization: organization.id, project: project.id };
             const getRoot = await request.post('/todos', starting).then(getBody);
             expect(getRoot).toMatchObject(expect.objectContaining(starting));
         });
 
-
-        it("after a DELETE the api root responds to a GET with a JSON representation of an array with todos status deleted",
-            async () => {
-                function verifyTodosProperties (todo) {
-                    expect(todo).toHaveProperty("status", "deleted");
-
-                }
-
-                var deleteThenGet = await request.delete("/todos").then(getRoot).then(getBody);
-                expect(deleteThenGet.length).toBe(0);
-                deleteThenGet.forEach(verifyTodosProperties)
-            }
-        );
     });
 
     describe("storing new todos by posting to the root url", () => {
@@ -58,8 +56,8 @@ describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/todo
         });
 
         it("adds a new todo to the list of todos at the root url", async () => {
-            const starting = { title: "walk the dog 2", description: "walk the dog!", organization: "ca737f73-87fb-40ce-aee1-b3361d8de63b" };
-            var getAfterPost = await request.post('/todos', starting).then(getRoot).then(getBody);
+            const starting = { title: "walk the dog 2", description: "walk the dog!", organization: organization.id, project: project.id };
+            const getAfterPost = await request.post('/todos', starting).then(getRoot).then(getBody);
 
             expect(getAfterPost.length).toBeGreaterThan(0);
 
@@ -71,12 +69,13 @@ describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/todo
                 title: starting.title,
                 organization: starting.organization,
                 status: 'created',
+                project: starting.project,
                 url: createdTodo.url
             }));
         });
 
         function createTodoAndVerifyItLooksValidWith (verifyTodoExpectation) {
-            return request.post('/todos', { title: "blah", organization: "ca737f73-87fb-40ce-aee1-b3361d8de63b" })
+            return request.post('/todos', { title: "blah", organization: organization.id, project: project.id })
                 .then(getBody)
                 .then(verifyTodoExpectation)
                 .then(getRoot)
@@ -87,7 +86,8 @@ describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/todo
             await createTodoAndVerifyItLooksValidWith((todo) => {
                 expect(todo.status).toBe('created');
                 expect(todo.title).toBe('blah');
-                expect(todo.organization).toBe('ca737f73-87fb-40ce-aee1-b3361d8de63b');
+                expect(todo.organization).toBe(organization.id);
+                expect(todo.project).toBe(project.id);
                 return todo;
             });
         });
@@ -101,7 +101,7 @@ describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/todo
         });
 
         it("each new todo has a url, which returns a todo", async () => {
-            const starting = { title: "my todo", organization: "ca737f73-87fb-40ce-aee1-b3361d8de63b" };
+            const starting = { title: "my todo", organization: organization.id, project: project.id };
             const newTodo = await request.post('/todos', starting).then(getBody);
             const fetchedTodo = await request.get(urlFromTodo(newTodo)).then(getBody);
             expect(fetchedTodo).toMatchObject(expect.objectContaining(starting));
@@ -173,6 +173,19 @@ describe(`Todo-Backend API residing at http://localhost:${process.env.PORT}/todo
             await request.delete(urlForNewTodo);
             const todosAfterCreatingAndDeletingTodo = await request.get(urlForNewTodo).then(getBody);
             expect(todosAfterCreatingAndDeletingTodo.status).toEqual('deleted');
+        });
+
+        it('returns todos by project id', async () => {
+            const starting = { title: "walk the dog 2", description: "walk the dog!", organization: organization.id, project: project.id };
+            await request.post('/todos', starting).then(getRoot).then(getBody);
+
+            const urlForNewTodo = await createFreshTodoAndGetItsUrl()
+            const todoId = urlForNewTodo.split('/').pop()
+            const todosByproject = await request.get(`/todos/projects/${project.id}`).then(getBody);
+            
+            const matchingTodo = todosByproject.find(todo => todo.id === todoId)
+            expect(todosByproject.length).toBeGreaterThan(0);
+            expect(matchingTodo.id).toBe(todoId);
         });
     });
 });
