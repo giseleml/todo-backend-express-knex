@@ -17,26 +17,51 @@ function view(req, data) {
 
 async function getAllOrganizations(req, res) {
   const allEntries = await organizations.all();
+
+  if (allEntries.length === 0) {
+    throw new Error('Organizations not found');
+  }
+
   return res.send(allEntries.map( _.curry(view)(req) ));
 }
 
 async function getOrganization(req, res) {
   const org = await organizations.get(req.params.id);
+
+  if (!org) {
+    throw new Error('Organization not found');
+  }
+
   return res.send(view(req, org));
 }
 
 async function postOrganization(req, res) {
   const created = await organizations.create({ name: req.body.name, state: 'active' });
+
+  if (!created) {
+    throw new Error('Organization not created');
+  }
+
   return res.send(view(req, created));
 }
 
 async function updateOrganization(req, res) {
   const patched = await organizations.update(req.params.id, req.body);
+
+  if (!patched) {
+    throw new Error('Organization not updated');
+  }
+
   return res.send(view(req, patched));
 }
 
 async function deleteOrganization(req, res) {
   const deleted = await organizations.update(req.params.id, { state: 'inactive' });
+
+  if (!deleted) {
+    throw new Error('Organization not deleted');
+  }
+
   return res.send(view(req, deleted));
 }
 

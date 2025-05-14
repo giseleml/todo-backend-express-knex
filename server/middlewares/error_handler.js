@@ -8,6 +8,11 @@ function addErrorReporting (func, message) {
             console.log(req.method, req.originalUrl, res.statusCode);
             console.log(`${message} caused by: ${err}`);
 
+            if (err.message.includes('not found')) {
+                res.status(404).send({ error: err.message });
+                return null;
+            }
+
             // Not always 500, but for simplicity's sake.
             res.status(500).send(`Opps! ${message}.`);
             return null

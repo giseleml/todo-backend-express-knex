@@ -9,8 +9,13 @@ async function get (id) {
     return results[0];
 }
 
-async function create ({ title, code, status, description, organization }) {
-    const results = await knex('todos').insert({ title, code, status, description, organization }).returning('*');
+async function getByProjectId (projectId) {
+    const results = await knex('todos').where({ project: projectId });
+    return results;
+}
+
+async function create (body) {
+    const results = await knex('todos').insert(body).returning('*');
     return results[0];
 }
 
@@ -32,6 +37,7 @@ async function clear () {
 module.exports = {
     all,
     get,
+    getByProjectId,
     create,
     update,
     delete: del,

@@ -1,6 +1,8 @@
 const _ = require('lodash');
 const todos = require('../database/queries/todos.js');
 const addErrorReporting = require('../middlewares/error_handler.js');
+const organizations = require('../database/queries/organizations.js');
+const projects = require('../database/queries/projects.js');
 
 function view (req, data) {
   const protocol = req.protocol,
@@ -12,49 +14,104 @@ function view (req, data) {
     title: data.title,
     description: data.description,
     code: data.code,
+    project: data.project,
     status: data.status,
     organization: data.organization,
     url: `${protocol}://${host}/todos/${id}`
   };
 }
 
+async function getTodosByProjectId (req, res) {
+  const allEntries = await todos.getByProjectId(req.params.projectId);
+
+  if (allEntries.length === 0) {
+    throw new Error('Todos not found');
+  }
+
+  return res.send(allEntries.map(_.curry(view)(req)));
+}
+
 async function getAllTodos (req, res) {
   const allEntries = await todos.all();
+
+  if (allEntries.length === 0) {
+    throw new Error('Todos not found');
+  }
+
   return res.send(allEntries.map(_.curry(view)(req)));
 }
 
 async function getTodo (req, res) {
   const todo = await todos.get(req.params.id);
+
+  if (!todo) {
+    throw new Error('Todo not found');
+  }
+
   return res.send(view(req, todo));
 }
 
 async function postTodo (req, res) {
+  const organization = await organizations.get(req.body.organization);
+
+  if (!organization) {
+    throw new Error('Organization not found');
+  }
+
+  const project = await projects.get(req.body.project);
+
+  if (!project) {
+    throw new Error('Project not found');
+  }
+
   const created = await todos.create({
     title: req.body.title,
     description: req.body.description,
     code: req.body.code,
     status: req.body.status,
-    organization: req.body.organization
+    organization: req.body.organization,
+    project: req.body.project
   });
+
+  if (!created) {
+    throw new Error('Todo not created');
+  }
+
   return res.send(view(req, created));
 }
 
 async function patchTodo (req, res) {
   const patched = await todos.update(req.params.id, req.body);
+
+  if (!patched) {
+    throw new Error('Todo not updated');
+  }
+
   return res.send(view(req, patched));
 }
 
 async function deleteAllTodos (req, res) {
   const deletedEntries = await todos.clear();
-  return res.send(deletedEntries.map( _.curry(view)(req) ));
+
+  if (deletedEntries.length === 0) {
+    throw new Error('Todos not deleted');
+  }
+
+  return res.send(deletedEntries.map(_.curry(view)(req)));
 }
 
 async function deleteTodo (req, res) {
   const deleted = await todos.update(req.params.id, { status: 'deleted' });
+
+  if (!deleted) {
+    throw new Error('Todo not deleted');
+  }
+
   return res.send(view(req, deleted));
 }
 
 const toExport = {
+  getTodosByProjectId: { method: getTodosByProjectId, errorMessage: "Could not fetch todos by project id" },
   getAllTodos: { method: getAllTodos, errorMessage: "Could not fetch all todos" },
   getTodo: { method: getTodo, errorMessage: "Could not fetch todo" },
   postTodo: { method: postTodo, errorMessage: "Could not post todo" },
@@ -86,6 +143,12 @@ const todosFields = {
     name: 'organization',
     type: 'string',
     foreign: 'organizations',
+    references: 'id',
+    notNull: true
+  }, {
+    name: 'project',
+    type: 'string',
+    foreign: 'projects',
     references: 'id',
     notNull: true
   }]

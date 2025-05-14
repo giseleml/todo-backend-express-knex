@@ -1,7 +1,8 @@
 const { todosFields } = require('../../models/todos.js');
 const { organizationsFields } = require('../../models/organizations.js');
+const { projectsFields } = require('../../models/projects.js');
 
-const TABLES = [todosFields, organizationsFields];
+const TABLES = [todosFields, organizationsFields, projectsFields];
 
 exports.up = function (knex) {
   console.log('[database] Creating tables...');

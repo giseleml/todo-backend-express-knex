@@ -4,6 +4,7 @@ const app = express();
 const todoModel = require('../models/todos.js');
 
 app.get('/', todoModel.getAllTodos);
+app.get('/projects/:projectId', todoModel.getTodosByProjectId);
 app.get('/:id', todoModel.getTodo);
 
 app.post('/', todoModel.postTodo);
